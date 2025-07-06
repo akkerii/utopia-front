@@ -25,15 +25,10 @@ import {
   Layers,
   Calculator,
 } from "lucide-react";
-
-// Mock Mode enum
-const Mode = {
-  ENTREPRENEUR: "entrepreneur",
-  CONSULTANT: "consultant",
-};
+import { Mode } from "@/types";
 
 interface ModeSelectorProps {
-  onModeSelect: (mode: string) => void;
+  onModeSelect: (mode: Mode) => void;
 }
 
 const FEATURES = {
@@ -113,7 +108,7 @@ const Card = ({
   onSelect,
   index,
 }: {
-  mode: string;
+  mode: Mode;
   title: string;
   description: string;
   icon: any;
@@ -221,7 +216,7 @@ const Card = ({
 );
 
 const ModeSelector: React.FC<ModeSelectorProps> = ({ onModeSelect }) => {
-  const [hoveredMode, setHoveredMode] = useState<string | null>(null);
+  const [hoveredMode, setHoveredMode] = useState<Mode | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
