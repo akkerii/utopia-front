@@ -68,7 +68,8 @@ export default function Home() {
     }
   };
 
-  const handleModeSelect = async (mode: Mode) => {
+  const handleModeSelect = async (modeString: string) => {
+    const mode = modeString as Mode;
     setSelectedMode(mode);
 
     // Initialize chat state with empty messages
