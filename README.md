@@ -56,11 +56,19 @@ A modern React/Next.js frontend for the Utopia AI business advisory platform. Th
    ```
 
 2. **Set up environment variables**
-   Create a `.env.local` file:
+   Copy the example environment file and configure it:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   Or create a `.env.local` file manually:
 
    ```bash
    NEXT_PUBLIC_API_URL=http://localhost:3000/api
    ```
+
+   > **Note**: The `.env.local` file is already created for local development. For production, update the `NEXT_PUBLIC_API_URL` to your production API endpoint.
 
 3. **Start the development server**
 
@@ -253,4 +261,5 @@ Potential improvements for subsequent phases:
 ---
 
 This frontend implementation provides a solid foundation for the Utopia AI MVP while maintaining extensibility for future feature additions and improvements.
+
 # utopia-front

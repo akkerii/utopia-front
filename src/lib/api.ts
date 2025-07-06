@@ -1,125 +1,92 @@
-import axios from "axios";
-import { ChatRequest, ChatResponse, SessionData } from "@/types";
+import {
+  ChatRequest,
+  ChatResponse,
+  SessionData,
+  QuestionResponse,
+} from "@/types";
 
-// Ensure HTTPS is used for the API URL
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://5e80-3-82-158-36.ngrok-free.app/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-// Ensure the URL is using HTTPS and no double slashes
-const ensureValidUrl = (url: string) => {
-  // First ensure HTTPS
-  let validUrl = url.startsWith("http://")
-    ? url.replace("http://", "https://")
-    : url;
-  // Remove any double slashes (except after protocol)
-  validUrl = validUrl.replace(/([^:]\/)\/+/g, "$1");
-  return validUrl;
-};
-
-const api = axios.create({
-  baseURL: ensureValidUrl(API_BASE_URL),
-  headers: {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    "ngrok-skip-browser-warning": "true",
-  },
-  timeout: 60000, // 60 second timeout for AI responses
-});
-
-// Add request/response interceptors for better error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    // Log the full error for debugging
-    console.error("API Error Details:", {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method,
+export const api = {
+  // Send a chat message
+  async sendMessage(request: ChatRequest): Promise<ChatResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify(request),
     });
 
-    if (error.code === "ECONNABORTED" && error.message.includes("timeout")) {
-      throw new Error(
-        "The AI is taking longer than usual to respond. Please try again."
-      );
+    if (!response.ok) {
+      throw new Error(`Chat API error: ${response.statusText}`);
     }
 
-    if (
-      error.code === "NETWORK_ERROR" ||
-      error.message?.includes("Mixed Content")
-    ) {
-      throw new Error(
-        "Unable to connect to the server. Please check your connection and try again."
-      );
+    return response.json();
+  },
+
+  // Send a question response
+  async sendQuestionResponse(
+    sessionId: string,
+    questionId: string,
+    answer: string
+  ): Promise<ChatResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/question-response`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sessionId,
+        questionId,
+        answer,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Question response API error: ${response.statusText}`);
     }
 
-    if (error.response?.status === 404) {
-      throw new Error(
-        "API endpoint not found. Please check the server configuration."
-      );
+    return response.json();
+  },
+
+  // Get session data
+  async getSession(sessionId: string): Promise<SessionData> {
+    const response = await fetch(`${API_BASE_URL}/api/session/${sessionId}`, {
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Session API error: ${response.statusText}`);
     }
 
-    if (error.response?.status === 500) {
-      throw new Error("Server error occurred. Please try again.");
-    }
+    return response.json();
+  },
 
-    if (error.response?.status === 429) {
-      throw new Error(
-        "Service is currently rate limited. Please wait a moment and try again."
-      );
-    }
-
-    // Generic error message for other cases
-    throw new Error(
-      error.response?.data?.message ||
-        "An unexpected error occurred. Please try again."
+  // Clear session
+  async clearSession(sessionId: string): Promise<void> {
+    const response = await fetch(
+      `${API_BASE_URL}/api/session/${sessionId}/clear`,
+      {
+        method: "POST",
+      }
     );
-  }
-);
 
-export const chatApi = {
-  sendMessage: async (request: ChatRequest): Promise<ChatResponse> => {
-    try {
-      const response = await api.post("/chat", request);
-      return response.data;
-    } catch (error: any) {
-      console.error("Chat API Error:", error);
-      throw error;
+    if (!response.ok) {
+      throw new Error(`Clear session API error: ${response.statusText}`);
     }
   },
 
-  getSession: async (sessionId: string): Promise<SessionData> => {
-    try {
-      const response = await api.get(`/session/${sessionId}`);
-      return response.data;
-    } catch (error: any) {
-      console.error("Session API Error:", error);
-      throw error;
-    }
-  },
+  // Health check
+  async healthCheck(): Promise<{ status: string; timestamp: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/health`, {
+      method: "GET",
+    });
 
-  clearSession: async (sessionId: string): Promise<void> => {
-    try {
-      await api.post(`/session/${sessionId}/clear`);
-    } catch (error: any) {
-      console.error("Clear Session API Error:", error);
-      throw error;
+    if (!response.ok) {
+      throw new Error(`Health check API error: ${response.statusText}`);
     }
-  },
 
-  healthCheck: async (): Promise<{ status: string }> => {
-    try {
-      const response = await api.get("/health");
-      return response.data;
-    } catch (error: any) {
-      console.error("Health Check API Error:", error);
-      throw error;
-    }
+    return response.json();
   },
 };
-
-export default api;
