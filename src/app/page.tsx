@@ -13,7 +13,7 @@ import {
   ConversationMessage,
   ModuleType,
 } from "@/types";
-import { api } from "@/lib/api";
+import { chatApi } from "@/lib/api";
 import {
   getNextModule,
   getModuleTransitionMessage,
@@ -51,7 +51,7 @@ export default function Home() {
 
   const loadSessionData = async (sessionId: string) => {
     try {
-      const data = await api.getSession(sessionId);
+      const data = await chatApi.getSession(sessionId);
       setSessionData(data);
 
       // Update chat state with conversation history
@@ -68,8 +68,7 @@ export default function Home() {
     }
   };
 
-  const handleModeSelect = async (modeString: string) => {
-    const mode = modeString as Mode;
+  const handleModeSelect = async (mode: Mode) => {
     setSelectedMode(mode);
 
     // Initialize chat state with empty messages
@@ -104,7 +103,7 @@ export default function Home() {
         mode: mode || chatState.mode,
       };
 
-      const response = await api.sendMessage(request);
+      const response = await chatApi.sendMessage(request);
 
       // Update module state if changed
       if (
@@ -142,7 +141,6 @@ export default function Home() {
         agent: response.agent,
         module: response.currentModule,
         timestamp: new Date(),
-        questions: response.questions,
       };
 
       // Update chat state with assistant message
@@ -175,7 +173,7 @@ export default function Home() {
   const handleReset = async () => {
     if (chatState.sessionId) {
       try {
-        await api.clearSession(chatState.sessionId);
+        await chatApi.clearSession(chatState.sessionId);
         toast.success("Session reset successfully");
       } catch (error) {
         console.error("Failed to clear session:", error);
@@ -189,59 +187,6 @@ export default function Home() {
       messages: [],
       isLoading: false,
     });
-  };
-
-  const handleQuestionResponse = async (questionId: string, answer: string) => {
-    if (!chatState.sessionId) {
-      toast.error("No active session");
-      return;
-    }
-
-    setChatState((prev) => ({
-      ...prev,
-      isLoading: true,
-    }));
-
-    try {
-      const response = await api.sendQuestionResponse(
-        chatState.sessionId,
-        questionId,
-        answer
-      );
-
-      // Create assistant message for the follow-up response
-      const assistantMessage: ConversationMessage = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: response.message,
-        agent: response.agent,
-        module: response.currentModule,
-        timestamp: new Date(),
-        questions: response.questions,
-      };
-
-      // Update chat state with assistant message
-      setChatState((prev) => ({
-        ...prev,
-        messages: [...prev.messages, assistantMessage],
-        isLoading: false,
-        currentAgent: response.agent,
-        currentModule: response.currentModule,
-      }));
-
-      // Reload session data to get updated modules
-      if (response.sessionId) {
-        await loadSessionData(response.sessionId);
-      }
-    } catch (error) {
-      console.error("Failed to send question response:", error);
-      toast.error("Failed to send response. Please try again.");
-
-      setChatState((prev) => ({
-        ...prev,
-        isLoading: false,
-      }));
-    }
   };
 
   const handleHome = () => {
@@ -319,7 +264,6 @@ export default function Home() {
             messages={chatState.messages}
             isLoading={chatState.isLoading}
             onSendMessage={sendMessage}
-            onQuestionResponse={handleQuestionResponse}
             currentAgent={chatState.currentAgent}
             currentModule={chatState.currentModule}
             sessionData={sessionData}

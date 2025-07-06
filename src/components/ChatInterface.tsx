@@ -14,14 +14,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { ClientDate } from "@/components/ClientDate";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
-import { QuestionCard } from "@/components/QuestionCard";
 import {
   ConversationMessage,
   AgentType,
   ModuleType,
   SessionData,
-  Question,
-  QuestionResponse,
 } from "@/types";
 import {
   getAgentColor,
@@ -35,7 +32,6 @@ interface ChatInterfaceProps {
   messages: ConversationMessage[];
   isLoading: boolean;
   onSendMessage: (message: string) => void;
-  onQuestionResponse: (questionId: string, answer: string) => void;
   currentAgent?: AgentType;
   currentModule?: ModuleType;
   sessionData?: SessionData;
@@ -70,7 +66,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   messages,
   isLoading,
   onSendMessage,
-  onQuestionResponse,
   currentAgent,
   currentModule,
   sessionData,
@@ -244,30 +239,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           >
             <ClientDate date={message.timestamp} />
           </div>
-
-          {/* Render questions if they exist */}
-          {!isUserMessage &&
-            message.questions &&
-            message.questions.length > 0 && (
-              <div className="mt-3 space-y-2">
-                {message.questions.map((question) => {
-                  const existingResponse = message.questionResponses?.find(
-                    (response) => response.questionId === question.id
-                  );
-                  return (
-                    <QuestionCard
-                      key={question.id}
-                      question={question}
-                      onAnswer={(answer) =>
-                        onQuestionResponse(question.id, answer)
-                      }
-                      isLoading={isLoading}
-                      existingResponse={existingResponse}
-                    />
-                  );
-                })}
-              </div>
-            )}
         </div>
       </div>
     );
