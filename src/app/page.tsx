@@ -12,6 +12,8 @@ import {
   SessionData,
   ConversationMessage,
   ModuleType,
+  StructuredResponse,
+  OpenAIModel,
 } from "@/types";
 import { chatApi } from "@/lib/api";
 import {
@@ -45,26 +47,41 @@ export default function Home() {
   // Load session data when sessionId changes
   useEffect(() => {
     if (chatState.sessionId) {
-      loadSessionData(chatState.sessionId);
+      loadSessionData(chatState.sessionId, true); // Override messages on initial load
     }
   }, [chatState.sessionId]);
 
-  const loadSessionData = async (sessionId: string) => {
+  const loadSessionData = async (
+    sessionId: string,
+    overrideMessages: boolean = false
+  ) => {
     try {
       const data = await chatApi.getSession(sessionId);
       setSessionData(data);
 
-      // Update chat state with conversation history
-      setChatState((prev) => ({
-        ...prev,
-        messages: data.conversationHistory,
-        mode: data.mode,
-        currentAgent: data.currentAgent,
-        currentModule: data.currentModule,
-      }));
+      // Only update messages if explicitly requested (e.g., on initial load)
+      if (overrideMessages || chatState.messages.length === 0) {
+        setChatState((prev) => ({
+          ...prev,
+          messages: data.conversationHistory,
+          mode: data.mode,
+          currentAgent: data.currentAgent,
+          currentModule: data.currentModule,
+        }));
+      } else {
+        // Just update the metadata without overriding messages
+        setChatState((prev) => ({
+          ...prev,
+          mode: data.mode,
+          currentAgent: data.currentAgent,
+          currentModule: data.currentModule,
+        }));
+      }
     } catch (error) {
       console.error("Failed to load session data:", error);
-      toast.error("Failed to load session data");
+      if (overrideMessages) {
+        toast.error("Failed to load session data");
+      }
     }
   };
 
@@ -80,13 +97,36 @@ export default function Home() {
     }));
   };
 
-  const sendMessage = async (message: string, mode?: Mode) => {
+  const handleModelSelect = (model: OpenAIModel) => {
+    console.log("🔄 Model selection changed:", {
+      from: chatState.selectedModel || chatState.currentModel,
+      to: model,
+      currentState: chatState,
+    });
+
+    setChatState((prev) => {
+      const newState = {
+        ...prev,
+        selectedModel: model,
+      };
+      console.log("🔄 New chat state after model selection:", newState);
+      return newState;
+    });
+  };
+
+  const sendMessage = async (
+    message: string,
+    structuredResponses?: StructuredResponse[],
+    model?: OpenAIModel,
+    mode?: Mode
+  ) => {
     // Create user message immediately
     const userMessage: ConversationMessage = {
       id: Date.now().toString(),
       role: "user",
       content: message,
       timestamp: new Date(),
+      structuredResponses,
     };
 
     // Update chat state with user message immediately
@@ -101,39 +141,15 @@ export default function Home() {
         message,
         sessionId: chatState.sessionId,
         mode: mode || chatState.mode,
+        structuredResponses,
+        model: model || chatState.selectedModel, // Include selected model
       };
 
+      console.log("Sending request:", request);
       const response = await chatApi.sendMessage(request);
+      console.log("Received response:", response);
 
-      // Update module state if changed
-      if (
-        response.currentModule &&
-        response.currentModule !== chatState.currentModule
-      ) {
-        setChatState((prev) => ({
-          ...prev,
-          currentModule: response.currentModule,
-        }));
-      }
-
-      // Add transition message if needed
-      if (response.isModuleTransition && response.currentModule) {
-        const transitionMessage: ConversationMessage = {
-          id: `transition-${Date.now()}`,
-          role: "system",
-          content: `🔄 Transitioning to ${getModuleTitle(
-            response.currentModule
-          )} module...`,
-          timestamp: new Date(),
-        };
-
-        setChatState((prev) => ({
-          ...prev,
-          messages: [...prev.messages, transitionMessage],
-        }));
-      }
-
-      // Create assistant message
+      // Create assistant message with structured questions
       const assistantMessage: ConversationMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
@@ -141,26 +157,45 @@ export default function Home() {
         agent: response.agent,
         module: response.currentModule,
         timestamp: new Date(),
+        structuredQuestions: response.structuredQuestions || [],
       };
 
-      // Update chat state with assistant message
+      console.log(
+        "Assistant message structured questions:",
+        assistantMessage.structuredQuestions
+      );
+
+      // Update chat state with assistant message and other data
       setChatState((prev) => ({
         ...prev,
         sessionId: response.sessionId,
         mode: mode || prev.mode,
         currentAgent: response.agent,
         currentModule: response.currentModule,
+        currentModel: response.currentModel || prev.selectedModel, // Update current model
         messages: [...prev.messages, assistantMessage],
         isLoading: false,
       }));
 
-      // Reload session data to get updated modules
+      // Reload session data to get updated modules (but don't override messages)
       if (response.sessionId) {
-        await loadSessionData(response.sessionId);
+        try {
+          const sessionData = await chatApi.getSession(response.sessionId);
+          setSessionData(sessionData);
+        } catch (error) {
+          console.error("Failed to reload session data:", error);
+          // Don't throw error here, just log it
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to send message:", error);
-      toast.error("Failed to send message. Please try again.");
+
+      // Handle model-specific errors
+      if (error.message?.includes("Invalid model")) {
+        toast.error("Invalid model selected. Please choose a different model.");
+      } else {
+        toast.error("Failed to send message. Please try again.");
+      }
 
       // Keep the user message but show error state
       setChatState((prev) => ({
@@ -206,11 +241,28 @@ export default function Home() {
   };
 
   const handleModuleClick = (moduleType: ModuleType) => {
-    const completedModules = getCompletedModules();
+    // Allow clicking on any module that has data or follows normal progression
+    const startedModules = sessionData
+      ? sessionData.modules
+          .filter(
+            (m) =>
+              m.completionStatus === "completed" ||
+              m.completionStatus === "in_progress"
+          )
+          .map((m) => m.moduleType)
+      : [];
 
-    // Check if module is accessible
-    if (!isModuleAccessible(moduleType, completedModules)) {
-      toast.error("Complete previous modules first to unlock this one");
+    const moduleData = sessionData?.modules.find(
+      (m) => m.moduleType === moduleType
+    );
+    const hasData =
+      moduleData?.summary ||
+      (moduleData?.data && Object.keys(moduleData.data).length > 0);
+    const isAccessible =
+      isModuleAccessible(moduleType, startedModules) || hasData;
+
+    if (!isAccessible) {
+      toast.error("Module not yet available");
       return;
     }
 
@@ -267,6 +319,9 @@ export default function Home() {
             currentAgent={chatState.currentAgent}
             currentModule={chatState.currentModule}
             sessionData={sessionData}
+            selectedModel={chatState.selectedModel}
+            currentModel={chatState.currentModel}
+            onModelSelect={handleModelSelect}
           />
         </div>
       </div>

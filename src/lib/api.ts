@@ -1,10 +1,14 @@
 import axios from "axios";
-import { ChatRequest, ChatResponse, SessionData } from "@/types";
+import {
+  ChatRequest,
+  ChatResponse,
+  SessionData,
+  AvailableModelsResponse,
+} from "@/types";
 
-// Ensure HTTPS is used for the API URL
+// Use localhost for development, allow override via env var
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://5e80-3-82-158-36.ngrok-free.app/api";
+  process.env.NEXT_PUBLIC_API_URL || "https://utopia-backend-218476677732.us-central1.run.app/api";
 
 // Ensure the URL is using HTTPS and no double slashes
 const ensureValidUrl = (url: string) => {
@@ -24,7 +28,7 @@ const api = axios.create({
     Accept: "application/json",
     "ngrok-skip-browser-warning": "true",
   },
-  timeout: 60000, // 60 second timeout for AI responses
+  timeout: 300000, // 300 second timeout for AI responses (5 minutes)
 });
 
 // Add request/response interceptors for better error handling
@@ -88,6 +92,16 @@ export const chatApi = {
       return response.data;
     } catch (error: any) {
       console.error("Chat API Error:", error);
+      throw error;
+    }
+  },
+
+  getModels: async (): Promise<AvailableModelsResponse> => {
+    try {
+      const response = await api.get("/models");
+      return response.data;
+    } catch (error: any) {
+      console.error("Models API Error:", error);
       throw error;
     }
   },

@@ -42,8 +42,7 @@ const nextConfig = {
 
   // Environment variables that will be shared across all environments
   env: {
-    NEXT_PUBLIC_API_URL:
-      "https://utopia-backend-218476677732.us-central1.run.app/api",
+    NEXT_PUBLIC_API_URL: "https://utopia-backend-218476677732.us-central1.run.app/api",
   },
 };
 

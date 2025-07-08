@@ -110,16 +110,16 @@ export const getPreviousModule = (
 
 export const isModuleAccessible = (
   moduleType: ModuleType,
-  completedModules: ModuleType[]
+  completedOrPartialModules: ModuleType[]
 ): boolean => {
   const moduleIndex = getModuleIndex(moduleType);
 
   // First module is always accessible
   if (moduleIndex === 0) return true;
 
-  // Check if all previous modules are completed
+  // Allow access if all previous modules are at least started (partial or completed)
   for (let i = 0; i < moduleIndex; i++) {
-    if (!completedModules.includes(MODULE_PROGRESSION[i])) {
+    if (!completedOrPartialModules.includes(MODULE_PROGRESSION[i])) {
       return false;
     }
   }
