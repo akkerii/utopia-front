@@ -13,7 +13,7 @@ import {
 } from "@/types";
 import { getModuleTitle, getAgentColor } from "@/lib/modules";
 import { AnimatedLogo } from "./AnimatedLogo";
-import { ClientDate } from "./ClientDate";
+import ClientDate from "./ClientDate";
 import ModelSelector from "./ModelSelector";
 import {
   Send,
