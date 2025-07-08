@@ -822,7 +822,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <>
             {messages.map((message, index) => (
               <MessageBubble
-                key={message.timestamp.toISOString()}
+                key={
+                  typeof message.timestamp === "string"
+                    ? message.timestamp
+                    : new Date(message.timestamp).toISOString()
+                }
                 message={message}
                 isLastMessage={index === messages.length - 1}
                 onSendMessage={onSendMessage}
