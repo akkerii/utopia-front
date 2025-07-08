@@ -8,13 +8,13 @@ import {
 
 // Use localhost for development, allow override via env var
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://utopia-backend-218476677732.us-central1.run.app/api";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
 
 // Ensure the URL is using HTTPS and no double slashes
 const ensureValidUrl = (url: string) => {
   // First ensure HTTPS
   let validUrl = url.startsWith("http://")
-    ? url.replace("http://", "https://")
+    ? url.replace("http://", "http://")
     : url;
   // Remove any double slashes (except after protocol)
   validUrl = validUrl.replace(/([^:]\/)\/+/g, "$1");

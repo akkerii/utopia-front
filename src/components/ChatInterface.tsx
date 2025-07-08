@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
 import {
   ConversationMessage,
   StructuredQuestion,
@@ -773,8 +775,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {mod.data?.full_content ? (
                   <div className="space-y-4">
                     <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                      <div className="prose prose-sm max-w-none text-gray-800 whitespace-pre-wrap leading-relaxed">
-                        {mod.data.full_content}
+                      <div className="prose prose-sm max-w-none text-gray-800">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeRaw]}
+                        >
+                          {mod.data.full_content}
+                        </ReactMarkdown>
                       </div>
                     </div>
                     {mod.summary && (
@@ -782,16 +789,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         <h3 className="text-sm font-medium text-blue-900 mb-2">
                           Quick Summary
                         </h3>
-                        <p className="text-sm text-blue-800">{mod.summary}</p>
+                        <div className="prose prose-sm max-w-none text-blue-800 prose-p:text-blue-800 prose-strong:text-blue-900">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeRaw]}
+                          >
+                            {mod.summary}
+                          </ReactMarkdown>
+                        </div>
                       </div>
                     )}
                   </div>
                 ) : mod.summary ? (
                   <div className="space-y-4">
                     <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                      <p className="text-base text-gray-800 leading-relaxed">
-                        {mod.summary}
-                      </p>
+                      <div className="prose prose-base max-w-none text-gray-800">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeRaw]}
+                        >
+                          {mod.summary}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                   </div>
                 ) : null}

@@ -22,7 +22,7 @@ const nextConfig = {
               "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self'",
-              "connect-src 'self' https://utopia-backend-218476677732.us-central1.run.app",
+              "connect-src 'self' http://localhost:3000",
               "frame-ancestors 'none'",
               "upgrade-insecure-requests",
             ].join("; "),
@@ -42,7 +42,7 @@ const nextConfig = {
 
   // Environment variables that will be shared across all environments
   env: {
-    NEXT_PUBLIC_API_URL: "https://utopia-backend-218476677732.us-central1.run.app/api",
+    NEXT_PUBLIC_API_URL: "http://localhost:3000/api",
   },
 };
 
